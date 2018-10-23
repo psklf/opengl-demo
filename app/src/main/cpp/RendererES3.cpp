@@ -25,6 +25,8 @@
 #include "glm/mat4x4.hpp"
 #include "glm/matrix.hpp"
 
+#include "Vertices.h"
+
 
 #define STR(s) #s
 #define STRV(s) STR(s)
@@ -52,12 +54,15 @@ static const char VERTEX_SHADER[] =
         "#version 300 es\n"
         "layout(location = " STRV(POS_ATTRIB) ") in vec3 pos;\n"
         "layout(location=" STRV(COLOR_ATTRIB) ") in vec2 color;\n"
+                   "layout(location = 4) in vec3 normal;\n"
         "out vec2 vTexCood;\n"
         "out vec4 v_world_pos;\n"
+        "out vec3 v_normal;\n"
         "uniform mat4 mvp_mat;\n"
         "void main() {\n"
         "    gl_Position = mvp_mat * vec4(pos, 1.0);\n"
         "    v_world_pos = vec4(pos, 1.0);\n"
+        "    v_normal = normal;\n"
         "    vTexCood = color;\n"
         "}\n";
 
@@ -67,15 +72,15 @@ static const char FRAGMENT_SHADER[] =
         "precision mediump float;\n"
         "in vec2 vTexCood;\n"
         "in vec4 v_world_pos;\n"
+        "in vec3 v_normal;\n"
         "out vec4 outColor;\n"
         "uniform sampler2D texture0;\n"
         ""
         "#define PI 3.14159265\n"
         ""
         "vec3 eye_pos = vec3(0.0, 0.0, 1.0);\n"
-        "vec3 n = vec3(0.0, 0.0, 1.0);\n"
         "vec3 light = vec3(1.0, 1.0, 1.0);\n"
-        "vec3 light_pos = vec3(1.0, 0.0, 1.0);\n"
+        "vec3 light_pos = vec3(1.0, 0.5, 2.0);\n"
         "float alpha = 0.3;\n"
         "vec3 f0 = vec3(0.56, 0.57, 0.58);\n"
         ""
@@ -93,6 +98,7 @@ static const char FRAGMENT_SHADER[] =
         "   vec3 albedo = texture(texture0, vTexCood).rgb;\n"
         ""
         ""
+        "    vec3 n = v_normal;\n"
         "    vec3 l = normalize(light_pos - v_world_pos.xyz);\n"
         "    vec3 v = normalize(eye_pos - v_world_pos.xyz);\n"
         "    vec3 h = normalize(l + v);\n"
@@ -276,48 +282,36 @@ bool RendererES3::init() {
 
     glGenBuffers(1, mVB);
     glBindBuffer(GL_ARRAY_BUFFER, mVB[VB_INSTANCE]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VERTICS), &VERTICS[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CUBE_VERTIC_NUM * 6, &CUBE_VERTICES[0], GL_STATIC_DRAW);
 
     glGenVertexArrays(1, &mVBState);
     glBindVertexArray(mVBState);
 
+    // Position
     glBindBuffer(GL_ARRAY_BUFFER, mVB[VB_INSTANCE]);
 //    glVertexAttribPointer(POS_ATTRIB, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)offsetof(Vertex, pos));
-    glVertexAttribPointer(POS_ATTRIB, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const GLvoid*)0);
+    glVertexAttribPointer(POS_ATTRIB, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (const GLvoid*)0);
     glEnableVertexAttribArray(POS_ATTRIB);
 
+    // Normal
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (const GLvoid*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+
+    // Texture Coordinates
     GLuint color_buf;
     glGenBuffers(1, &color_buf);
     glBindBuffer(GL_ARRAY_BUFFER, color_buf);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(TEX_COORD), TEX_COORD, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CUBE_VERTIC_NUM * 2, CUBE_TEX_COORD, GL_STATIC_DRAW);
 
     glVertexAttribPointer(COLOR_ATTRIB, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
     glEnableVertexAttribArray(COLOR_ATTRIB);
 
-    // Uniforms
-    glm::mat4 view_mat = glm::lookAt(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4 project_mat = glm::perspective(M_PI_4 * 1.0f, 9.0 / 16.0, 0.01, 10.0);
-
-    glm::mat4 mvp_mat = project_mat * view_mat;
-
-//    ALOGE("%f", mvp_mat[0][0]);
-//    ALOGE("location %d", glGetUniformLocation(mProgram, "mvp_mat"));
-        glUseProgram(mProgram);
-    glUniformMatrix4fv(glGetUniformLocation(mProgram, "mvp_mat"), 1, GL_FALSE, glm::value_ptr(mvp_mat));
     checkGlError("Init()2");
-
-//    glBindBuffer(GL_ARRAY_BUFFER, mVB[VB_SCALEROT]);
-//    glVertexAttribPointer(SCALEROT_ATTRIB, 4, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0);
-//    glEnableVertexAttribArray(SCALEROT_ATTRIB);
-//    glVertexAttribDivisor(SCALEROT_ATTRIB, 1);
-//
-//    glBindBuffer(GL_ARRAY_BUFFER, mVB[VB_OFFSET]);
-//    glVertexAttribPointer(OFFSET_ATTRIB, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), 0);
-//    glEnableVertexAttribArray(OFFSET_ATTRIB);
-//    glVertexAttribDivisor(OFFSET_ATTRIB, 1);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_DEPTH_TEST);
 
     ALOGV("Using OpenGL ES 3.0 renderer");
 
@@ -365,7 +359,7 @@ void RendererES3::draw(unsigned int numInstances) {
     glUseProgram(mProgram);
     glBindVertexArray(mVBState);
 //    glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, numInstances);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTIC_NUM);
 }
 
 
@@ -421,7 +415,9 @@ void RendererES3::resize(int w, int h) {
     glUseProgram(mProgram);
 
     // Uniforms
-    glm::mat4 view_mat = glm::lookAt(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+    glm::vec3 eye_pos = glm::vec3(1.0, 0.6, 2.0);
+    glm::vec3 center_point = eye_pos * -1.0f;
+    glm::mat4 view_mat = glm::lookAt(eye_pos, center_point, glm::vec3(0.0, 1.0, 0.0));
     glm::mat4 project_mat = glm::perspective((float)(1.0f * M_PI_4), (w * 1.0f / h * 1.0f), 0.01f, 10.0f);
 
     glm::mat4 mvp_mat = project_mat * view_mat;

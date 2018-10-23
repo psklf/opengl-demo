@@ -40,7 +40,8 @@ add_library(gles3jni SHARED
             ${GL3STUB_SRC}
             gles3jni.cpp 
             RendererES2.cpp
-            RendererES3.cpp)
+            RendererES3.cpp
+            Vertices.cpp)
 
 # Include libraries needed for gles3jni lib
 target_link_libraries(gles3jni
