@@ -81,7 +81,7 @@ static const char FRAGMENT_SHADER[] =
         "vec3 eye_pos = vec3(0.0, 0.0, 1.0);\n"
         "vec3 light = vec3(1.0, 1.0, 1.0);\n"
         "vec3 light_pos = vec3(1.0, 0.5, 2.0);\n"
-        "float alpha = 0.3;\n"
+        "float alpha = 0.4;\n"
         "vec3 f0 = vec3(0.56, 0.57, 0.58);\n"
         ""
         "float geometry_ggx(float ndotv, float k) {\n"
@@ -96,9 +96,12 @@ static const char FRAGMENT_SHADER[] =
         ""
         "void main() {\n"
         "   vec3 albedo = texture(texture0, vTexCood).rgb;\n"
-        ""
+        "   vec3 ambient = albedo * vec3(0.1);\n"
         ""
         "    vec3 n = v_normal;\n"
+        ""
+        //        " if (!gl_FrontFacing)   n = -n;\n"
+        ""
         "    vec3 l = normalize(light_pos - v_world_pos.xyz);\n"
         "    vec3 v = normalize(eye_pos - v_world_pos.xyz);\n"
         "    vec3 h = normalize(l + v);\n"
@@ -119,7 +122,7 @@ static const char FRAGMENT_SHADER[] =
         "    denominator = max(denominator, 0.001);\n"
         "    vec3 func_kc =  D * G * F / denominator;\n"
         "    vec3 brdf = (1.0 - func_kc) * albedo / PI + func_kc;\n"
-        "    vec3 final_color = brdf * light * max(dot(n, l), 0.0);\n"
+        "    vec3 final_color = brdf * light * max(dot(n, l), 0.0) + ambient;\n"
         "    outColor = vec4(final_color, 1.0);\n"
 
         "}\n";
@@ -415,7 +418,7 @@ void RendererES3::resize(int w, int h) {
     glUseProgram(mProgram);
 
     // Uniforms
-    glm::vec3 eye_pos = glm::vec3(1.0, 0.6, 2.0);
+    glm::vec3 eye_pos = glm::vec3(1.0, 0.8, 2.0);
     glm::vec3 center_point = eye_pos * -1.0f;
     glm::mat4 view_mat = glm::lookAt(eye_pos, center_point, glm::vec3(0.0, 1.0, 0.0));
     glm::mat4 project_mat = glm::perspective((float)(1.0f * M_PI_4), (w * 1.0f / h * 1.0f), 0.01f, 10.0f);
