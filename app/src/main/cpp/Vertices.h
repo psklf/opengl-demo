@@ -1,5 +1,5 @@
 //
-// Created by SENSETIME\zhuyuanxuan on 18-10-22.
+// Created by psklf on 18-10-22.
 //
 
 #ifndef OPENGL_DEMO_VERTICES_H

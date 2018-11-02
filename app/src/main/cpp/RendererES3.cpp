@@ -27,6 +27,11 @@
 
 #include "Vertices.h"
 
+#include <Importer.hpp>
+#include <scene.h>
+#include <postprocess.h>
+
+
 
 #define STR(s) #s
 #define STRV(s) STR(s)
@@ -81,7 +86,7 @@ static const char FRAGMENT_SHADER[] =
         "vec3 eye_pos = vec3(0.0, 0.0, 1.0);\n"
         "vec3 light = vec3(1.0, 1.0, 1.0);\n"
         "vec3 light_pos = vec3(1.0, 0.5, 2.0);\n"
-        "float alpha = 0.4;\n"
+        "float alpha = 0.3;\n"
         "vec3 f0 = vec3(0.56, 0.57, 0.58);\n"
         ""
         "float geometry_ggx(float ndotv, float k) {\n"
@@ -98,7 +103,7 @@ static const char FRAGMENT_SHADER[] =
         "   vec3 albedo = texture(texture0, vTexCood).rgb;\n"
         "   vec3 ambient = albedo * vec3(0.1);\n"
         ""
-        "    vec3 n = v_normal;\n"
+        "    vec3 n = normalize(v_normal);\n"
         ""
         //        " if (!gl_FrontFacing)   n = -n;\n"
         ""
@@ -210,20 +215,17 @@ static const float TEX_COORD[] = {
         1.0f, 0.0f
 };
 
-/*
- *                 "    for (float row = -1.0; row <= 1.0; row += 1.0) {\n"
-                "        for (float col = -1.0; col <= 1.0; col += 1.0) {\n"
-                "            dis_color += texture(texture0, vec2(vTexCood.x + row / step,"
-                "                vTexCood.y + col / step));\n"
-                "        }\n"
-                "    }\n"
- */
 
-/*                "    dis_color += texture(texture0, vec2(vTexCood.x, vTexCood.y + step));\n"
-                "    dis_color += texture(texture0, vec2(vTexCood.x, vTexCood.y - step));\n"
-                "    dis_color += texture(texture0, vec2(vTexCood.x, vTexCood.y));\n"
-                "    dis_color += texture(texture0, vec2(vTexCood.x + step, vTexCood.y));\n"
-                "    dis_color += texture(texture0, vec2(vTexCood.x - step, vTexCood.y));\n"*/
+struct Vertex2 {
+    glm::vec3 Position;
+    glm::vec3 Normal;
+    glm::vec2 TexCoords;
+};
+
+
+std::vector<Vertex2> g_vertex_data;
+std::vector<unsigned int> g_indices_data;
+
 
 class RendererES3: public Renderer {
 public:
@@ -270,7 +272,49 @@ RendererES3::RendererES3()
         mVB[i] = 0;
 }
 
+void LoadMesh(const char *path) {
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        ALOGE("ERROR::ASSIMP:: %s", importer.GetErrorString());
+        return;
+    }
+    ALOGV("ASSIMP::Success ");
+    aiMesh *mesh = scene->mMeshes[0];
+
+
+    for (int i = 0; i < mesh->mNumVertices; ++i) {
+        Vertex2 vertex2;
+        vertex2.Position.x = mesh->mVertices[i].x;
+        vertex2.Position.y = mesh->mVertices[i].y;
+        vertex2.Position.z = mesh->mVertices[i].z;
+
+        vertex2.Normal.x = mesh->mNormals[i].x;
+        vertex2.Normal.y = mesh->mNormals[i].y;
+        vertex2.Normal.z = mesh->mNormals[i].z;
+
+        vertex2.TexCoords.x = mesh->mTextureCoords[0][i].x;
+        vertex2.TexCoords.y = mesh->mTextureCoords[0][i].y;
+
+        g_vertex_data.push_back(vertex2);
+    }
+
+
+
+    for (int i = 0; i < mesh->mNumFaces; ++i) {
+        for (int j = 0; j < mesh->mFaces[i].mNumIndices; ++j) {
+            g_indices_data.push_back(mesh->mFaces[i].mIndices[j]);
+        }
+    }
+}
+
+
 bool RendererES3::init() {
+    const char *path = "/data/local/tmp/chair/chair.FBX";
+
+    LoadMesh(path);
+
     mProgram = createProgram(VERTEX_SHADER, FRAGMENT_SHADER);
     if (!mProgram)
         return false;
@@ -285,7 +329,8 @@ bool RendererES3::init() {
 
     glGenBuffers(1, mVB);
     glBindBuffer(GL_ARRAY_BUFFER, mVB[VB_INSTANCE]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CUBE_VERTIC_NUM * 6, &CUBE_VERTICES[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(g_vertex_data.size() * sizeof(Vertex2)),
+                 &g_vertex_data[0], GL_STATIC_DRAW);
 
     glGenVertexArrays(1, &mVBState);
     glBindVertexArray(mVBState);
@@ -293,23 +338,35 @@ bool RendererES3::init() {
     // Position
     glBindBuffer(GL_ARRAY_BUFFER, mVB[VB_INSTANCE]);
 //    glVertexAttribPointer(POS_ATTRIB, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)offsetof(Vertex, pos));
-    glVertexAttribPointer(POS_ATTRIB, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (const GLvoid*)0);
+    glVertexAttribPointer(POS_ATTRIB, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex2), (const GLvoid *) 0);
     glEnableVertexAttribArray(POS_ATTRIB);
 
     // Normal
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (const GLvoid*)(3 * sizeof(float)));
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex2),
+                          (const GLvoid *) (offsetof(Vertex2, Normal)));
     glEnableVertexAttribArray(4);
 
     // Texture Coordinates
-    GLuint color_buf;
-    glGenBuffers(1, &color_buf);
-    glBindBuffer(GL_ARRAY_BUFFER, color_buf);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CUBE_VERTIC_NUM * 2, CUBE_TEX_COORD, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(COLOR_ATTRIB, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+    glVertexAttribPointer(COLOR_ATTRIB, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2),
+                          (const GLvoid *) (offsetof(Vertex2, TexCoords)));
     glEnableVertexAttribArray(COLOR_ATTRIB);
 
-    checkGlError("Init()2");
+
+//    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // End of vertice data
+
+    checkGlError("Init()--001");
+
+    // Element buffer objects
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 static_cast<GLsizeiptr>(g_indices_data.size() * sizeof(unsigned int)),
+                 &g_indices_data[0],
+                 GL_STATIC_DRAW);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -361,8 +418,8 @@ void RendererES3::unmapTransformBuf() {
 void RendererES3::draw(unsigned int numInstances) {
     glUseProgram(mProgram);
     glBindVertexArray(mVBState);
-//    glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, numInstances);
-    glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTIC_NUM);
+//    glDrawArrays(GL_TRIANGLES, 0, CUBE_VERTIC_NUM);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(g_indices_data.size()), GL_UNSIGNED_INT, 0);
 }
 
 
@@ -418,7 +475,7 @@ void RendererES3::resize(int w, int h) {
     glUseProgram(mProgram);
 
     // Uniforms
-    glm::vec3 eye_pos = glm::vec3(1.0, 0.8, 2.0);
+    glm::vec3 eye_pos = glm::vec3(1.0, 0.0, 2.0);
     glm::vec3 center_point = eye_pos * -1.0f;
     glm::mat4 view_mat = glm::lookAt(eye_pos, center_point, glm::vec3(0.0, 1.0, 0.0));
     glm::mat4 project_mat = glm::perspective((float)(1.0f * M_PI_4), (w * 1.0f / h * 1.0f), 0.01f, 10.0f);

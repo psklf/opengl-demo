@@ -34,6 +34,21 @@ else ()
 endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
 
 include_directories(glm)
+include_directories(deps/assimp/include)
+include_directories(deps)
+
+find_library(z_lib z)
+
+set(DEP_LIBS ${z_lib})
+
+#assimp lib
+if (${ANDROID})
+    set(DEP_LIBS ${DEP_LIBS}
+            ${CMAKE_CURRENT_SOURCE_DIR}/deps/assimp/lib/android/${ANDROID_ABI}/libassimp.a)
+else()
+    set(DEP_LIBS ${DEP_LIBS}
+            assimp)
+endif()
 
 
 add_library(gles3jni SHARED
@@ -46,6 +61,7 @@ add_library(gles3jni SHARED
 # Include libraries needed for gles3jni lib
 target_link_libraries(gles3jni
             ${OPENGL_LIB}
+            ${DEP_LIBS}
             android
             EGL
             log

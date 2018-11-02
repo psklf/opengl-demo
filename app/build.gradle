@@ -13,9 +13,19 @@ android {
         targetSdkVersion 27
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static'
+                arguments '-DANDROID_STL=gnustl_static'
             }
         }
+
+        // Similar to other properties in the defaultConfig block,
+        // you can configure the ndk block for each product flavor
+        // in your build configuration.
+        ndk {
+            // Specifies the ABI configurations of your native
+            // libraries Gradle should build and package with your APK.
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        }
+
     }
     buildTypes {
         release {

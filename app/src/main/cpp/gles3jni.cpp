@@ -35,7 +35,6 @@ const Vertex QUAD[4] = {
 
 
 
-
 bool checkGlError(const char* funcName) {
     GLint err = glGetError();
     if (err != GL_NO_ERROR) {
@@ -254,9 +253,9 @@ void Renderer::setDepthTexture(uint32_t *data, int width, int height) {
 static Renderer* g_renderer = NULL;
 
 extern "C" {
-    JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_init(JNIEnv* env, jobject obj);
-    JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_resize(JNIEnv* env, jobject obj, jint width, jint height);
-    JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_step(JNIEnv* env, jobject obj);
+    JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_init(JNIEnv* env, jclass type);
+    JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_resize(JNIEnv* env, jclass type, jint width, jint height);
+    JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_step(JNIEnv* env, jclass type);
     JNIEXPORT void JNICALL Java_com_android_gles3jni_GLES3JNILib_set2DTexture(
             JNIEnv *env, jclass type, jobject bmp, jint height, jint width);
 
@@ -271,7 +270,7 @@ static GLboolean gl3stubInit() {
 #endif
 
 JNIEXPORT void JNICALL
-Java_com_android_gles3jni_GLES3JNILib_init(JNIEnv* env, jobject obj) {
+Java_com_android_gles3jni_GLES3JNILib_init(JNIEnv* env, jclass type) {
     if (g_renderer) {
         delete g_renderer;
         g_renderer = NULL;
@@ -293,14 +292,14 @@ Java_com_android_gles3jni_GLES3JNILib_init(JNIEnv* env, jobject obj) {
 }
 
 JNIEXPORT void JNICALL
-Java_com_android_gles3jni_GLES3JNILib_resize(JNIEnv* env, jobject obj, jint width, jint height) {
+Java_com_android_gles3jni_GLES3JNILib_resize(JNIEnv* env, jclass type, jint width, jint height) {
     if (g_renderer) {
         g_renderer->resize(width, height);
     }
 }
 
 JNIEXPORT void JNICALL
-Java_com_android_gles3jni_GLES3JNILib_step(JNIEnv* env, jobject obj) {
+Java_com_android_gles3jni_GLES3JNILib_step(JNIEnv* env, jclass type) {
     if (g_renderer) {
         g_renderer->render();
     }
