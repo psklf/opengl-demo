@@ -17,8 +17,10 @@
 #include "gles3jni.h"
 #include <EGL/egl.h>
 
-#include "glm/gtc/matrix_transform.hpp" // glm::translate, glm::rotate, glm::scale, glm::perspective
 #include <math.h>
+#include <vector>
+
+#include "glm/gtc/matrix_transform.hpp" // glm::translate, glm::rotate, glm::scale, glm::perspective
 #include "glm/glm.hpp"
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.inl>
@@ -27,9 +29,9 @@
 
 #include "Vertices.h"
 
-#include <Importer.hpp>
-#include <scene.h>
-#include <postprocess.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 
 

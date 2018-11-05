@@ -35,7 +35,7 @@ endif (${ANDROID_PLATFORM_LEVEL} LESS 12)
 
 include_directories(glm)
 include_directories(deps/assimp/include)
-include_directories(deps)
+
 
 find_library(z_lib z)
 
@@ -44,7 +44,7 @@ set(DEP_LIBS ${z_lib})
 #assimp lib
 if (${ANDROID})
     set(DEP_LIBS ${DEP_LIBS}
-            ${CMAKE_CURRENT_SOURCE_DIR}/deps/assimp/lib/android/${ANDROID_ABI}/libassimp.a)
+            ${CMAKE_CURRENT_SOURCE_DIR}/deps/assimp/lib/android/${ANDROID_ABI}/libassimp.so)
 else()
     set(DEP_LIBS ${DEP_LIBS}
             assimp)
